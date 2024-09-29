@@ -5,6 +5,7 @@ from peft import LoraConfig, get_peft_model
 from torch import nn
 from transformers import AutoModel, AutoFeatureExtractor
 
+from ..utils.lora_config import CustomLoraConfig
 from .registry import register
 from .base import BaseSpeechEncoder, BaseSpeechPreProcessor, BaseSpeechPostProcessor
 
@@ -22,16 +23,13 @@ class WaveLMEncoder(BaseSpeechEncoder):
         self,
         model_name,
         use_lora: bool = False,
-        lora_config: Optional[LoraConfig] = None,
+        lora_config: Optional[CustomLoraConfig] = None,
     ):
         super().__init__()
 
         self.model_name = model_name
         self.use_lora = use_lora
-        self.lora_config = lora_config
-
-        self.encoder = None
-        self.preprocessor = None
+        self.lora_config = lora_config.get_lora_config()
 
         self.load_model()
 

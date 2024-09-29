@@ -1,2 +1,2 @@
 from .base import BaseVoiceLLM
-from .vocal_model import VoiceLLM
+from .voice_llm_model import VoiceLLM

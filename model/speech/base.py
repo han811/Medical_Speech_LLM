@@ -7,6 +7,10 @@ class BaseSpeechEncoder(nn.Module):
     def __init__(self):
         super().__init__()
 
+        self.encoder = None
+        self.preprocessor: BaseSpeechPreProcessor = None
+        self.postprocessor: BaseSpeechPostProcessor = None
+
     @abstractmethod
     def load_model(self):
         raise NotImplementedError

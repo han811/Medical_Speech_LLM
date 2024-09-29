@@ -1,43 +1,74 @@
 import gin
-import pytorch_lightning as pl
+from torch.utils.data import DataLoader
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.strategies import DDPStrategy
 
-import model
+from .task import Task
+from dataset import BaseDatasetFactory
 
 
 @gin.configurable()
-class TrainerLightning(pl.LightningModule):
+class Trainer:
     def __init__(
         self,
-        model: model.BaseVoiceLLM,
-        max_lr: float = 3e-4,
-        total_training_step: int = 50000,
-        warmup_step: int = 1000,
+        task: Task,
+        dataset: BaseDatasetFactory,
+        log_path: str,
+        batch_size: int = 32,
+        shuffle: bool = True,
+        num_workers: int = 4,
+        max_epochs: int = 50000,
+        gpus: int = 2,
+        limit_train_batches: int = 10000,
+        limit_val_batches: int = 10000,
+        log_every_n_steps: int = 10000,
+        grad_accumulate_steps: int = 8,
     ):
-        super().__init__()
-        self.save_hyperparameters()
 
-        self.model = model
-        self.max_lr = max_lr
-        self.total_training_step = total_training_step
-        self.warmup_step = warmup_step
+        self.task = task
+        self.train_dataset = dataset.get_train_dataset
+        self.val_dataset = dataset.get_val_dataset
+        self.train_loader = DataLoader(
+            self.train_dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            # collate_fn=my_collator,
+            num_workers=num_workers,
+        )
+        self.val_loader = DataLoader(
+            self.val_dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            # collate_fn=my_collator,
+            num_workers=num_workers,
+        )
 
-    def training_step(self, batch, batch_idx):
-        mel, pre_tokenized_ids, post_tokenized_ids, output_tokenized_ids = batch
-        embeds, atts, label_ids = self.encode(
-            mel, pre_tokenized_ids, post_tokenized_ids, output_tokenized_ids
-        )
-        outputs = self.forward(embeds, atts, label_ids)
-        loss = outputs["loss"]
-        self.log("train/loss", loss, on_epoch=True, prog_bar=True, logger=True)
-        return loss
+        # logger = WandbLogger(project="mmllm", name=log_path)
 
-    def validation_step(self, batch, batch_idx):
-        mel, pre_tokenized_ids, post_tokenized_ids, output_tokenized_ids = batch
-        embeds, atts, label_ids = self.encode(
-            mel, pre_tokenized_ids, post_tokenized_ids, output_tokenized_ids
+        self.trainer = Trainer(
+            max_epochs=max_epochs,
+            gpus=gpus,
+            strategy=DDPStrategy(find_unused_parameters=True),
+            limit_train_batches=limit_train_batches,
+            limit_val_batches=limit_val_batches,
+            log_every_n_steps=log_every_n_steps,
+            enable_checkpointing=True,
+            callbacks=[
+                ModelCheckpoint(
+                    dirpath=f"checkpoints",
+                    filename=log_path + "-{epoch}",
+                    save_top_k=1,
+                    monitor="val/loss",
+                    save_last=True,
+                )
+            ],
+            fast_dev_run=False,
+            # logger=logger,
+            accumulate_grad_batches=grad_accumulate_steps,
+            resume_from_checkpoint=None,
         )
-        outputs = self.forward(embeds, atts, label_ids)
-        loss = outputs["loss"]
-        self.log(
-            "val/loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True
-        )
+
+    def train(self):
+        self.trainer.fit(self.task, self.train_loader, self.val_loader)

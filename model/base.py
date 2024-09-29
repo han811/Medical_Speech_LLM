@@ -23,3 +23,11 @@ class BaseVoiceLLM(nn.Module):
     @abstractmethod
     def forward(self, x):
         raise NotImplementedError("Not implemented forward")
+
+    @abstractmethod
+    def encode(self, batch):
+        raise NotImplementedError("Not implemented encode")
+
+    @abstractmethod
+    def preprocess(self, batch):
+        raise NotImplementedError("Not implemented preprocess")

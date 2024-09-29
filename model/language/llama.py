@@ -1,12 +1,14 @@
 from typing import Optional
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import gin
 from peft import LoraConfig, get_peft_model
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from .registry import register
 from .base import BaseLLM
 
 
+@gin.configurage()
 @register("llama")
 class LLAMAModel(BaseLLM):
     __model_names: list = [

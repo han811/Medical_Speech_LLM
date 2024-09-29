@@ -1,14 +1,16 @@
 import gin
 import pytorch_lightning as pl
 
-import model
+from model import VoiceLLM
 
 
 @gin.configurable()
-class TrainerLightning(pl.LightningModule):
+class Task(pl.LightningModule):
     def __init__(
         self,
-        model: model.BaseVoiceLLM,
+        connector_name: str,
+        speech_encoder_name: str,
+        llm_model_name: str,
         max_lr: float = 3e-4,
         total_training_step: int = 50000,
         warmup_step: int = 1000,
@@ -16,7 +18,7 @@ class TrainerLightning(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        self.model = model
+        self.model = VoiceLLM(connector_name, speech_encoder_name, llm_model_name)
         self.max_lr = max_lr
         self.total_training_step = total_training_step
         self.warmup_step = warmup_step

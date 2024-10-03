@@ -1,0 +1,11 @@
+1. data augmentation
+일단 학습을 해보고 성능을 보고 판단하자
+speech => specto augmentation
+language -> 자체 생성? 일단 성능 보고 판단
+
+2. comparison
+ai-hub accuracy 80짜리 모델이 하나 있음
+
+3. technical novelty?
+=> novelty 부분은 어디에 둘 수 있을까?
+

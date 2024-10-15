@@ -3,10 +3,9 @@ import pytorch_lightning as pl
 from torch.optim import Adam
 
 from model import VoiceLLM
-from dataset import BaseDataset
 
 
-@gin.configurable()
+@gin.configurable
 class Task(pl.LightningModule):
     def __init__(
         self,
@@ -20,18 +19,20 @@ class Task(pl.LightningModule):
         self.save_hyperparameters()
 
         ### key components ###
-        self.model = VoiceLLM(connector_name, speech_encoder_name, llm_model_name)
-        self.dataset = BaseDataset()  # TODO: Not implemented
+        self.voice_llm_model = VoiceLLM(
+            connector_name, speech_encoder_name, llm_model_name
+        )
 
         ### learning parameters ###
         self.max_lr = max_lr
         self.warmup_step = warmup_step
 
     def configure_optimizers(self):
+        print(self.voice_llm_model.speech_encoder.parameters())
         opt = [
-            {"params": self.model.speech_encoder.parameters(), "lr": 1e-5},
-            {"params": self.model.connector.parameters(), "lr": self.max_lr},
-            {"params": self.model.llm_model.parameters(), "lr": self.max_lr},
+            {"params": self.voice_llm_model.speech_encoder.parameters(), "lr": 1e-5},
+            {"params": self.voice_llm_model.connector.parameters(), "lr": self.max_lr},
+            {"params": self.voice_llm_model.llm_model.parameters(), "lr": self.max_lr},
         ]
         optimizer = Adam(opt, lr=self.max_lr)
         return optimizer
@@ -42,22 +43,40 @@ class Task(pl.LightningModule):
             pre_tokenized_ids,
             post_tokenized_ids,
             output_tokenized_ids,
-        ) = self.model.preprocess(batch=batch)
-        embeds, atts, label_ids = self.model.encode(
+        ) = self.voice_llm_model.preprocess(batch=batch)
+        embeds, atts, label_ids = self.voice_llm_model.encode(
             speech_features, pre_tokenized_ids, post_tokenized_ids, output_tokenized_ids
         )
-        outputs = self.model(embeds, atts, label_ids)
+        outputs = self.voice_llm_model(embeds, atts, label_ids)
         loss = outputs["loss"]
-        self.log("train/loss", loss, on_epoch=True, prog_bar=True, logger=True)
+        self.log(
+            "train/loss",
+            loss,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+            batch_size=1,
+        )
         return loss
 
     def validation_step(self, batch, batch_idx):
-        mel, pre_tokenized_ids, post_tokenized_ids, output_tokenized_ids = batch
-        embeds, atts, label_ids = self.encode(
-            mel, pre_tokenized_ids, post_tokenized_ids, output_tokenized_ids
+        (
+            speech_features,
+            pre_tokenized_ids,
+            post_tokenized_ids,
+            output_tokenized_ids,
+        ) = self.voice_llm_model.preprocess(batch=batch)
+        embeds, atts, label_ids = self.voice_llm_model.encode(
+            speech_features, pre_tokenized_ids, post_tokenized_ids, output_tokenized_ids
         )
-        outputs = self.forward(embeds, atts, label_ids)
+        outputs = self.voice_llm_model(embeds, atts, label_ids)
         loss = outputs["loss"]
         self.log(
-            "val/loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True
+            "val/loss",
+            loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+            batch_size=1,
         )

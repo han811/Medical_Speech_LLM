@@ -1,29 +1,20 @@
 from abc import abstractmethod
 
-from torch.utils.data import Dataset
+from .voice_llm_dataset import VoiceLLMDataset, VoiceLLMCollator
 
 
-class BaseDatasetFactory:
-    def __init__(self):
-        pass
+class DatasetFactory:
+    def __init__(self, test_size: float = 0.2, shuffle: bool = True):
+        self.test_size = test_size
+        self.shuffle = shuffle
 
-    @abstractmethod
-    def get_train_dataset(self):
-        raise NotImplementedError
+    def get_collator_fn(self, speech_preprocessor, llm_preprocessor, device="cpu"):
+        return VoiceLLMCollator(speech_preprocessor, llm_preprocessor, device)
 
-    @abstractmethod
-    def get_val_dataset(self):
-        raise NotImplementedError
-
-
-class BaseDataset(Dataset):
-    def __init__(self):
-        super().__init__()
+    def get_dataset(self, is_train: bool = True):
+        data_list = self.get_data_list(is_train=is_train)
+        return VoiceLLMDataset(data_list=data_list)
 
     @abstractmethod
-    def __len__(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def __getitem__(self, index):
+    def get_data_list(self, is_train: bool = True):
         raise NotImplementedError

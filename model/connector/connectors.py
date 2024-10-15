@@ -5,7 +5,7 @@ from .registry import register
 from .base import BaseConnector
 
 
-@gin.configurable()
+@gin.configurable
 @register("linear")
 class LinearConnector(BaseConnector):
     def __init__(self, input_dim: int, output_dim: int):

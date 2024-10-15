@@ -1,53 +1,68 @@
-import torch
 from torch.utils.data import Dataset
-import torchaudio
-import pandas as pd
-import random
-import numpy as np
+
+
+class VoiceLLMCollator:
+    def __init__(self, speech_preprocessor, llm_preprocessor, device):
+        self.speech_preprocessor = speech_preprocessor
+        self.llm_preprocessor = llm_preprocessor
+        self.device = device
+
+    def __call__(self, batch):
+        print("Collator Calls!!")
+        exit()
+        pass
+
+        # (
+        #     waveform,
+        #     pre_speech_prompt,
+        #     post_speech_prompt,
+        #     output_prompt,
+        #     complete_prompt,
+        # ) = batch[0]
+        # if waveform is not None:
+        #     if "openai/whisper" in self.audio_encoder_name:
+        #         mel = self.wav_2_mel(waveform).unsqueeze(0)
+        #     else:
+        #         mel = self.hubert_processor(
+        #             waveform.squeeze(), return_tensors="pt", sampling_rate=16000
+        #         ).input_values
+        # else:
+        #     mel = None
+
+        # pre_tokenized_ids = self.tokenizer(
+        #     pre_speech_prompt,
+        #     padding="do_not_pad",
+        #     return_tensors="pt",
+        #     truncation=False,
+        #     add_special_tokens=False,
+        # )["input_ids"]
+        # post_tokenized_ids = self.tokenizer(
+        #     post_speech_prompt,
+        #     padding="do_not_pad",
+        #     return_tensors="pt",
+        #     truncation=False,
+        #     add_special_tokens=False,
+        # )["input_ids"]
+        # output_tokenized_ids = self.tokenizer(
+        #     self.tokenizer.bos_token + output_prompt + self.tokenizer.eos_token,
+        #     padding="do_not_pad",
+        #     return_tensors="pt",
+        #     truncation=False,
+        #     add_special_tokens=False,
+        # )["input_ids"]
+
+        # return mel, pre_tokenized_ids, post_tokenized_ids, output_tokenized_ids
 
 
 class VoiceLLMDataset(Dataset):
-    def __init__(
-        self,
-        csv_file: str,
-        mode: str = "train",
-        random_state: int = 42,
-        test_size: float = 0.2,
-        shuffle: bool = True,
-    ):
-        self.total_data = pd.read_csv(csv_file)
-        if shuffle:
-            self.total_data = self.total_data.sample(
-                frac=1, random_state=random_state
-            ).reset_index(drop=True)
-        self.len = len(self.total_data)
-        self.train_len = int(self.len * test_size)
-        self.test_len = self.len - self.train_len
-
-        self.mode = mode
-        self.data_frame = None
-        if self.mode == "train":
-            self.len = self.train_len
-            self.data_frame = self.total_data[: self.train_len]
-        else:
-            self.len = self.test_len
-            self.data_frame = self.total_data[self.train_len : self.test_len]
+    def __init__(self, data_list: list):
+        self.data_list = data_list
 
     def __len__(self):
-        return self.len
+        return len(self.data_list)
 
     def __getitem__(self, idx):
-        # Load audio
-        data_sample = self.data_frame.iloc[idx]
-        audio_path = data_sample["audio_path"]
-        if pd.isna(audio_path):
-            raise ValueError("There is no audio data path")
-        else:
-            waveform, sample_rate = torchaudio.load(audio_path)
-
-        return waveform, data_sample, sample_rate
-
-        return waveform, labels_str, conv_history
+        return self.data_list[idx]
 
 
 # class InstructionalAudioDataset(AudioDataset):

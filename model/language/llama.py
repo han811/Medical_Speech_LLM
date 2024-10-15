@@ -9,7 +9,7 @@ from .registry import register
 from .base import BaseLLM, BaseLLMPreProcessor, BaseLLMPostProcessor
 
 
-@gin.configurage()
+@gin.configurable
 @register("llama")
 class LLAMAModel(BaseLLM):
     __model_names: list = [
@@ -26,7 +26,8 @@ class LLAMAModel(BaseLLM):
 
         self.model_name = model_name
         self.use_lora = use_lora
-        self.lora_config = lora_config.get_lora_config()
+        if lora_config:
+            self.lora_config = lora_config.get_lora_config()
 
         self.load_model()
 
@@ -46,15 +47,17 @@ class LLAMAModel(BaseLLM):
 
         self.preprocessor = LLAMAPreProcessor(model_name=self.model_name)
 
-    def forward(self, x):
-        out = self.model(out)
+    def forward(self, inputs_embeds, attention_mask, labels):
+        out = self.model(
+            inputs_embeds=inputs_embeds, attention_mask=attention_mask, labels=labels
+        )
         return out
 
     def card_list(self):
         print(LLAMAModel.__model_names)
 
 
-@gin.configurable()
+@gin.configurable
 class LLAMAPreProcessor(BaseLLMPreProcessor):
     def __init__(self, model_name: str):
         super().__init__()
@@ -64,4 +67,10 @@ class LLAMAPreProcessor(BaseLLMPreProcessor):
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
 
     def __call__(self, words):
-        return self.tokenizer(words)
+        return self.tokenizer(
+            words,
+            padding="do_not_pad",
+            return_tensors="pt",
+            truncation=False,
+            add_special_tokens=False,
+        )["input_ids"].to("cuda")

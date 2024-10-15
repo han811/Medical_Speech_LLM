@@ -1,0 +1,29 @@
+Task.connector_name = "linear"
+Task.speech_encoder_name = "wavelm"
+Task.llm_model_name = "llama"
+
+TrainerWrapper.dataset_name = "snu_data"
+TrainerWrapper.batch_size = 1
+TrainerWrapper.shuffle = True
+TrainerWrapper.num_workers = 1
+TrainerWrapper.max_epochs = 2
+TrainerWrapper.limit_train_batches = 1
+TrainerWrapper.limit_val_batches = 1
+TrainerWrapper.log_every_n_steps = 1
+TrainerWrapper.grad_accumulate_steps = 1
+
+SNUDatasetFactory.jsonl_path = "/u/ybkim95/VocalAgents/data/combined_snuh.jsonl"
+SNUDatasetFactory.test_size = 0.2
+SNUDatasetFactory.shuffle = True
+
+CustomLoraConfig.r=8
+CustomLoraConfig.lora_alpha=16
+
+LinearConnector.input_dim=768
+LinearConnector.output_dim=2048
+
+WaveLMEncoder.model_name="microsoft/wavlm-base"
+WaveLMPreProcessor.sampling_rate=16000
+
+LLAMAModel.model_name="TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+LLAMAModel.use_lora=False

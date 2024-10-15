@@ -2,7 +2,7 @@ import gin
 from peft import LoraConfig
 
 
-@gin.configurable()
+@gin.configurable
 class CustomLoraConfig:
     def __init__(
         self,
@@ -20,7 +20,7 @@ class CustomLoraConfig:
 
     def get_lora_config(self):
         return LoraConfig(
-            r=self.lora_r,
+            r=self.r,
             lora_alpha=self.lora_alpha,
             target_modules=self.target_modules,
             lora_dropout=self.lora_dropout,

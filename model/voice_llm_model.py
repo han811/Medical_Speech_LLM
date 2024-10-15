@@ -1,14 +1,17 @@
 import torch
+import gin
 
-import connector
-import language
-import speech
+from . import connector
+from . import language
+from . import speech
 from .base import BaseVoiceLLM
 from .connector import BaseConnector
 from .language import BaseLLM
 from .speech import BaseSpeechEncoder
+import torchaudio
 
 
+@gin.configurable
 class VoiceLLM(BaseVoiceLLM):
     def __init__(
         self,
@@ -25,6 +28,8 @@ class VoiceLLM(BaseVoiceLLM):
         self.connector: BaseConnector = None
         self.speech_encoder: BaseSpeechEncoder = None
         self.llm_model: BaseLLM = None
+
+        self.load_model()
 
     def load_model(self):
         self.connector = connector.make(self.connector_name)()
@@ -48,10 +53,13 @@ class VoiceLLM(BaseVoiceLLM):
     ):
         batch_size = mel.shape[0]
 
+        mel = mel.to("cuda")
+
         speech_embeds = self.speech_encoder(mel)
         speech_embeds = self.connector(speech_embeds)
 
         embedder = self.llm_model.model.model.embed_tokens
+        # embedder = self.llm_model.model.model.model.embed_tokens
         pre_prompt_embeds = embedder(pre_tokenized_ids)
         post_prompt_embeds = embedder(post_tokenized_ids)
         output_prompt_embeds = embedder(output_tokenized_ids)
@@ -90,20 +98,28 @@ class VoiceLLM(BaseVoiceLLM):
         )
         return combined_embeds, atts, label_ids
 
-    def preprocess(self, batch):
-        speech = batch["speech"]
-        pre_words = batch["pre_words"]
-        post_words = batch["post_words"]
-        output_words = batch["output_words"]
+    def get_preprocesor(self):
+        return self.speech_encoder.preprocessor, self.llm_model.preprocessor
 
-        speech_features = self.speech_encoder.preprocessor(speech)
-        pre_tokenized_ids = self.llm_model.preprocessor(pre_words)
-        post_tokenized_ids = self.llm_model.preprocessor(post_words)
-        output_tokenized_ids = self.llm_model.preprocessor(output_words)
+    # def preprocess(self, batch):
+    #     speech = list()
+    #     for audio_path in batch["audio_path"]:
+    #         waveform, sample_rate = torchaudio.load(audio_path)
+    #         speech.append(waveform)
+    #     speech = torch.concat(speech)
 
-        return (
-            speech_features,
-            pre_tokenized_ids,
-            post_tokenized_ids,
-            output_tokenized_ids,
-        )
+    #     pre_words = batch["question"]
+    #     post_words = "<post token>"
+    #     output_words = batch["answer"]
+
+    #     speech_features = self.speech_encoder.preprocessor(speech)
+    #     pre_tokenized_ids = self.llm_model.preprocessor(pre_words)
+    #     post_tokenized_ids = self.llm_model.preprocessor(post_words)
+    #     output_tokenized_ids = self.llm_model.preprocessor(output_words)
+
+    #     return (
+    #         speech_features,
+    #         pre_tokenized_ids,
+    #         post_tokenized_ids,
+    #         output_tokenized_ids,
+    #     )

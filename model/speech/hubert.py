@@ -10,7 +10,7 @@ from .registry import register
 from .base import BaseSpeechEncoder
 
 
-@gin.configurage()
+@gin.configurable
 @register("hubert")
 class HubertEncoder(BaseSpeechEncoder):
     __model_names: list = [

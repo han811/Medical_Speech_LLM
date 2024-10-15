@@ -1,0 +1,6 @@
+connector_name: linear
+speech_encoder_name: wavelm
+llm_model_name: llama
+max_lr: 0.0003
+warmup_step: 1000
+mode: cuda
